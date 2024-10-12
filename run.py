@@ -2,13 +2,13 @@ import asyncio
 import random
 import sys
 
-from typing import Callable, Coroutine, Any, List, Tuple
+from typing import Callable, Coroutine, Any, List
 from loguru import logger
 from loader import config, semaphore, file_operations
 from core.bot import Bot
 from models import Account
 from utils import setup
-from console import Console
+from console import Console  # You can remove this if you're not using it anymore
 from database import initialize_database
 
 
@@ -67,26 +67,37 @@ async def run() -> None:
     await file_operations.setup_files()
 
     module_map = {
-        "register": (config.accounts_to_register, process_registration),
-        "farm": (config.accounts_to_farm, farm_continuously),
-        "complete_tasks": (config.accounts_to_farm, process_complete_tasks),
-        "export_stats": (config.accounts_to_farm, process_export_stats),
+        "1": ("register", config.accounts_to_register, process_registration),
+        "2": ("farm", config.accounts_to_farm, farm_continuously),
+        "3": ("complete_tasks", config.accounts_to_farm, process_complete_tasks),
+        "4": ("export_stats", config.accounts_to_farm, process_export_stats),
+        "5": ("exit", [], None)
     }
 
     while True:
-        Console().build()
+        print("\nSelect a module:")
+        print("1. Register")
+        print("2. Farm")
+        print("3. Complete tasks")
+        print("4. Export statistics")
+        print("5. Exit")
+        option = input("Enter the option: ").strip()
 
-        if config.module not in module_map:
-            logger.error(f"Unknown module: {config.module}")
+        if option not in module_map:
+            logger.error(f"Invalid option: {option}")
+            continue
+
+        module_name, accounts, process_func = module_map[option]
+
+        if module_name == "exit":
+            print("Exiting...")
             break
-
-        accounts, process_func = module_map[config.module]
 
         if not accounts:
-            logger.error(f"No accounts for {config.module}")
-            break
+            logger.error(f"No accounts for {module_name}")
+            continue
 
-        if config.module == "farm":
+        if module_name == "farm":
             await process_func(accounts)
         else:
             await run_module(accounts, process_func)
